@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garage Dashboard - SwiftSOS</title>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/static/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <style>
+        .request-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .request-item {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            margin-top: 40px;
+        }
+
+        .accept-button, .reject-button {
+            background-color: green;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        .reject-button {
+            background-color: red;
+        }
+
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-top: 20px;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const response = await fetch('/service-requests');
+                const serviceRequests = await response.json();
+
+                const requestList = document.getElementById('request-list');
+                serviceRequests.forEach(request => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'request-item';
+                    const Distance = localStorage.getItem('Distance');
+                    listItem.innerHTML = `
+                        <p><strong>Request ID:</strong> ${request._id}</p>
+                        <p><strong>Username:</strong> ${request.UserName}</p>
+                        <p><strong>Vehicle Type:</strong> ${request.vehicleType}</p>
+                        <p><strong>Service Type:</strong> ${request.serviceType}</p>
+                        <p><strong>Additional Info:</strong> ${request.addInfo}</p>
+                        <p><strong>Distance:</strong> ${Distance}</p>
+
+                        <p><button class="accept-button" data-id="${request._id}">Accept</button></p>
+                        <p><button class="reject-button" data-id="${request._id}">Reject</button></p>
+                    `;
+                    requestList.appendChild(listItem);
+                });
+
+                document.querySelectorAll('.accept-button').forEach(button => {
+                    button.addEventListener('click', async function() {
+                        const requestId = this.getAttribute('data-id');
+                        await updateRequestStatus(requestId, 1);
+                        await deleteOtherRequests(requestId);
+                        location.reload();
+                    });
+                });
+
+                document.querySelectorAll('.reject-button').forEach(button => {
+                    button.addEventListener('click', async function() {
+                        const requestId = this.getAttribute('data-id');
+                        await updateRequestStatus(requestId, 0);
+                        location.reload();
+                    });
+                });
+
+                await fetchAcceptedRequestAndShowLocation();
+            } catch (error) {
+                console.error('Error fetching service requests:', error);
+            }
+        });
+
+        async function updateRequestStatus(requestId, status) {
+            try {
+                const response = await fetch(`/update-request/${requestId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ request: status })
+                });
+
+                if (response.ok) {
+                    alert('Request updated successfully');
+                } else {
+                    alert('Failed to update request');
+                }
+            } catch (error) {
+                console.error('Error updating request status:', error);
+            }
+        }
+
+        async function deleteOtherRequests(acceptedRequestId) {
+            try {
+                const response = await fetch(`/delete-other-requests/${acceptedRequestId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    alert('Failed to delete other requests');
+                }
+            } catch (error) {
+                console.error('Error deleting other requests:', error);
+            }
+        }
+
+        async function fetchAcceptedRequestAndShowLocation() {
+            try {
+                const response = await fetch('/accepted-request');
+                const acceptedRequest = await response.json();
+
+                if (acceptedRequest) {
+                    const { latitude, longitude } = acceptedRequest;
+                    initMap(latitude, longitude);
+                }
+            } catch (error) {
+                console.error('Error fetching accepted request:', error);
+            }
+        }
+
+        function initMap(lat, lng) {
+            const map = L.map('map').setView([lat, lng], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            L.marker([lat, lng]).addTo(map)
+                .bindPopup('Accepted Request Location')
+                .openPopup();
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="logo">
+                <h1>SwiftSOS Garage Dashboard</h1>
+            </div>
+            <input id="menu-toggle" type="checkbox">
+            <label class="menu-icon" for="menu-toggle">☰</label>
+            <ul class="menu-items">
+                <li><a href="/SwiftSOS">Home</a></li>
+                <li><a href="/SwiftSOS#about">About</a></li>
+                <li><a href="/SwiftSOS#service">Service</a></li>
+                <li><a href="/SwiftSOS#footer-links">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section>
+            <h2>Service Requests</h2>
+            <ul id="request-list" class="request-list"></ul>
+            <div id="map"></div>
+        </section>
+    </main>
+</body>
+</html>

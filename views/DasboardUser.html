@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SwiftSOS</title>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/static/styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/geolib/dist/geolib.min.js"></script>
+    
+    <style>
+        .popup-form {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .popup-form.open {
+            display: block;
+        }
+
+        .popup-form h3 {
+            margin-top: 0;
+        }
+
+        .popup-form button {
+            margin-top: 10px;
+        }
+
+        .popup-form .close-btn {
+            background: red;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            float: right;
+        }
+
+        #info {
+            border: 2px solid black;
+            border-radius: 20px;
+            display: none; /* Initially hidden */
+            margin-top: 200px;
+            margin-left: 100px;
+            height: 300px;
+            width: 800px;
+        }
+
+        li {
+            list-style: none;
+            padding: 10px 10px;
+            font-weight: bolder;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="logo">
+                <h1>SwiftSOS Dashboard</h1>
+            </div>
+            <input id="menu-toggle" type="checkbox">
+            <label class="menu-icon" for="menu-toggle">☰</label>
+            <ul class="menu-items">
+                <li><a href="/SwiftSOS">Home</a></li>
+                <li><a href="/SwiftSOS#about">About</a></li>
+                <li><a href="/SwiftSOS#service">Service</a></li>
+                <li><a href="/SwiftSOS#footer-links">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+    <div id="info">
+        <ul>
+            <li id="GarageName"><span>Garage Name :</span></li>
+            <li id="PhoneNo"><span>Phone No. :</span></li>
+            <li id="VehicleType"><span>Vehicle Type :</span></li>
+            <li id="servicerequest"><span>Service request:</span></li>
+            <li id="garageDistance"><span>Distance:</span></li>
+            <li id="garageAddress"><span>Garage Address:</span></li>
+        </ul>
+        <div class="status" style="background-color: green; border: 2px solid black; height: 15px; width: 90px; border-radius: 5px; margin-left: 40px; margin-top: 60px; padding: 10px 10px;">Pending..</div>
+    </div>
+    <div class="dashboard" id="dashboard">
+        <div class="popup-form open" id="popupForm">
+            <button class="close-btn" id="closeFormBtn">X</button>
+            <h3>Request a Service</h3>
+            <form id="requestServiceForm">
+                <label for="vehicleType">Choose a Vehicle Type:</label>
+                <select name="vehicleType" id="vehicleType" required>
+                    <option value="Car">Car</option>
+                    <option value="Bike">Bike</option>
+                    <option value="Jeep">Jeep</option>
+                    <option value="Bolero">Bolero</option>
+                </select>
+                <br>
+                <br>
+                <label for="serviceType">Choose a service:</label>
+                <select id="serviceType" name="serviceType" required>
+                    <option value="roadside_assistance">Emergency Roadside Assistance</option>
+                    <option value="vehicle_diagnostics">Vehicle Diagnostics</option>
+                    <option value="towing">Towing Services</option>
+                    <option value="fuel_delivery">Emergency Fuel Delivery</option>
+                    <option value="jump_start">Jump Starts</option>
+                    <option value="tire_change">Tire Changes</option>
+                    <option value="locksmith">Locksmith Services</option>
+                    <option value="fluid_delivery">Fluid Delivery</option>
+                    <option value="minor_repairs">Minor Repairs</option>
+                    <option value="battery_replacement">Battery Replacement</option>
+                </select>
+                <br>
+                <br>
+                <label for="addInfo">Additional information:</label>
+                <br>
+                <textarea name="addInfo" id="addInfo" style="width: 359px; height: 136px;"></textarea>
+                <br>
+                <br>
+                <button type="submit" style="background-color: green; border-radius: 5px; height: 40px; width: 70px; font-size: 15px; font-weight: bold;">Request</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        function closePopupForm() {
+            document.getElementById('popupForm').classList.remove('open');
+            showInfoSection(); // Show the info section after closing the popup form
+        }
+
+        function showInfoSection() {
+            document.getElementById('info').style.display = 'block';
+        }
+
+    async function submitForm(event) {
+    event.preventDefault();
+    const vehicleType = document.getElementById('vehicleType').value;
+    const serviceType = document.getElementById('serviceType').value;
+    const addInfo = document.getElementById('addInfo').value;
+
+    // Get the user's location
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        const requestStatus = 2; // Assuming 1 means 'Pending'
+
+        const response = await fetch('/api/request', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                vehicleType,
+                serviceType,
+                addInfo,
+                latitude,
+                longitude,
+                request: requestStatus
+            })
+        });
+
+        if (response.ok) {
+            document.getElementById('VehicleType').innerText = `Vehicle Type: ${vehicleType}`;
+            document.getElementById('servicerequest').innerText = `Service request: ${serviceType}`;
+            
+            // Save the request status and details in localStorage
+            localStorage.setItem('requestStatus', requestStatus);
+            localStorage.setItem('vehicleType', vehicleType);
+            localStorage.setItem('serviceType', serviceType);
+
+            closePopupForm();
+            updateStatus(requestStatus); // Update the status in the DOM
+        } else {
+            console.error('Failed to save request');
+        }
+    }, (error) => {
+        console.error('Error getting location', error);
+    });
+}
+
+function updateStatus(requestValue) {
+    const statusElement = document.querySelector('.status');
+    console.log('Updating status to:', requestValue);
+    if (requestValue == 1) {
+        statusElement.style.backgroundColor = 'blue';
+        statusElement.innerText = 'Accepted';
+    } else if (requestValue == 0) {
+        statusElement.style.backgroundColor = 'red';
+        statusElement.innerText = 'Rejected';
+    } else {
+        statusElement.style.backgroundColor = 'green';
+        statusElement.innerText = 'Pending..';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('closeFormBtn').addEventListener('click', closePopupForm);
+    document.getElementById('requestServiceForm').addEventListener('submit', submitForm);
+
+    let requestStatus = localStorage.getItem('requestStatus');
+    if (requestStatus) {
+        const vehicleType = localStorage.getItem('vehicleType');
+        const serviceType = localStorage.getItem('serviceType');
+        
+        document.getElementById('VehicleType').innerText = `Vehicle Type: ${vehicleType}`;
+        document.getElementById('servicerequest').innerText = `Service request: ${serviceType}`;
+        updateStatus(requestStatus); // Update the status in the DOM
+        showInfoSection();
+    } else {
+        document.getElementById('popupForm').classList.add('open');
+    }
+
+    const nearestGarageName = localStorage.getItem('nearestGarageName');
+    const Distance = localStorage.getItem('Distance');
+    const Address = localStorage.getItem('Address');
+    const phoneno = localStorage.getItem('Phone');
+
+    if (nearestGarageName) {
+        document.getElementById('GarageName').innerText = `Garage Name: ${nearestGarageName}`;
+    } else {
+        document.getElementById('GarageName').innerText = `Garage Name: Not Available`;
+    }
+    if (Distance) {
+        document.getElementById('garageDistance').innerText = `Distance: ${Distance}`;
+    } else {
+        document.getElementById('garageDistance').innerText = `Distance: Not Available`;
+    }
+    if (Address) {
+        document.getElementById('garageAddress').innerText = `Address: ${Address}`;
+    } else {
+        document.getElementById('garageAddress').innerText = `Address: Not Available`;
+    }
+    if (phoneno) {
+        document.getElementById('PhoneNo').innerText = `Phone No.: ${phoneno}`;
+    } else {
+        document.getElementById('PhoneNo').innerText = `Phone No.: Not Available`;
+    }
+});
+
+    </script>
+</body>
+</html>

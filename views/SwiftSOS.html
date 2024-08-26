@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwiftSOS</title>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/static/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/geolib/3.3.1/geolib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/geolib/dist/geolib.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+      // JavaScript function to dynamically insert username
+      function renderUsername(username) {
+        if (username) {
+          const profileContainer = document.createElement('li');
+          profileContainer.className = 'profile-container';
+          profileContainer.innerHTML = `
+            <span class="w1">
+              <img src="/static/profile-removebg-preview.png" width="50px" height="50px" alt="Profile Image">
+            </span>
+            <li class="s1">
+              <a href="#">${username}</a>
+            </li>
+          `;
+          document.querySelector('.menu-items').appendChild(profileContainer);
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        const username = '<%= username %>'; // Replace with actual username logic
+        renderUsername(username);
+      });
+
+      function getLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(showPosition, showError);
+        } else {
+          alert("Geolocation is not supported by this browser.");
+        }
+      }
+
+      function showPosition(position) {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        const ming = document.getElementById('ming');
+        ming.remove();
+        let map2 = document.getElementById('map');
+        map2.style.display = "block";
+        // Initialize the map
+        const map = L.map('map').setView([lat, lon], 13);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+        }).addTo(map);
+
+        // Add user location marker
+        L.marker([lat, lon]).addTo(map).bindPopup('You are here').openPopup();
+
+        fetch('/garages')
+          .then(response => response.json())
+          .then(data => {
+            const nearestGarage = findNearestGarage(data, lat, lon);
+            if (nearestGarage) {
+              document.getElementById('garageDetails').innerHTML = `
+                <h3>Nearest Garage</h3>
+                <p id="gname"><strong>Name:</strong> ${nearestGarage.name}</p>
+                <p><strong>Address:</strong> ${nearestGarage.address}</p>
+                <p><strong>Distance:</strong> ${nearestGarage.distance} meters</p>
+                <p><button id="myButton" style="background-color:green;">Go to Services</button></p>
+              `;
+              // Add garage location marker
+              L.marker([nearestGarage.latitude, nearestGarage.longitude]).addTo(map).bindPopup(nearestGarage.name).openPopup();
+
+              document.getElementById("myButton").addEventListener("click", function() {
+          // Save the garage name in localStorage
+          const garageName = nearestGarage.name;
+          const dist=nearestGarage.distance;
+          const address=nearestGarage.address;
+          const phone=nearestGarage.phoneno;
+          localStorage.setItem('nearestGarageName', garageName);
+          localStorage.setItem('Distance', dist);
+          localStorage.setItem('Address', address);
+          localStorage.setItem('Phone', phone);
+
+          window.location.href = "DasboardUser.html";
+        });
+      } 
+      else {
+              document.getElementById('garageDetails').innerHTML = '<p>No garages found</p>';
+            }
+          })
+          .catch(error => {
+            console.error(error);
+            alert('Error fetching garages');
+          });
+      }
+
+      function showError(error) {
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            alert("User denied the request for Geolocation.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            alert("Location information is unavailable.");
+            break;
+          case error.TIMEOUT:
+            alert("The request to get user location timed out.");
+            break;
+          case error.UNKNOWN_ERROR:
+            alert("An unknown error occurred.");
+            break;
+        }
+      }
+
+      function findNearestGarage(garages, userLat, userLon) {
+        let nearestGarage = null;
+        let minDistance = Infinity;
+        garages.forEach(garage => {
+          const distance = geolib.getDistance(
+            { latitude: userLat, longitude: userLon },
+            { latitude: garage.latitude, longitude: garage.longitude }
+          );
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearestGarage = { ...garage, distance };
+          }
+        });
+        return nearestGarage;
+      }
+
+      
+    </script>
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="logo">
+                <h1>SwiftSOS</h1>
+            </div>
+            <input id="menu-toggle" type="checkbox">
+            <label class="menu-icon" for="menu-toggle">☰</label>
+            <ul class="menu-items">
+                <li><a href="#content">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#service">Service</a></li>
+                <li><a href="DasboardUser.html">Dashboard</a></li>
+                <li><a href="#footer-links">Contact</a></li>
+                <li>
+                    <ul>
+                        <!-- Profile will be inserted here by JavaScript if username is available -->
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+    </header>
+    <div class="content" id="content">
+        <div class="map" id="map" style="height: 500px; width: 100%; display: none;"></div>
+        <img id="ming" src="/static/map.png" alt="Map">
+        <div class="details">
+            <h2>Instant Emergency Garage Services</h2>
+            <ul>
+                <li><img src="/static/carIcon.png" alt="Car" height="50" width="50"></li>
+                <li><img src="/static/bikeIcon.png" alt="Bike" height="50" width="50"></li>
+                <li><img src="/static/scooterIcon.png" alt="Scooter" height="50" width="50"></li>
+            </ul>
+            <button id="local" onclick="getLocation()">Find Nearest Garage</button>
+            <div id="garageDetails"></div>
+        </div>
+    </div>
+    <div class="about" id="about">
+        <div class="paragraph">
+            <h2>About Us</h2>
+            <p>At SwiftSOS, we're more than just a garage service. We're your reliable partner in times of vehicle emergencies, offering swift and professional assistance when you need it most. Our team of highly trained technicians is dedicated to providing you with the best service possible, ensuring that your vehicle is back on the road in no time. With our 24/7 emergency garage services, you can rest assured that help is always just a phone call away. Whether you're dealing with a flat tire, a dead battery, or any other vehicle-related issue, our team is here to help. We pride ourselves on our quick response times and our ability to handle any situation with ease and efficiency.</p>
+            <p>But we're not just about fixing cars. We're also committed to providing you with the best customer experience possible. From our friendly customer service team to our transparent pricing policy, we strive to make your experience with us as smooth and hassle-free as possible. At SwiftSOS, we understand that your vehicle is more than just a mode of transportation. It's a part of your life, and we're here to help you keep it running smoothly. So the next time you find yourself in need of emergency garage services, don't hesitate to give us a call. We'll be there for you, every step of the way.</p>
+        </div>
+        <div class="img1">
+            <img src="/static/pic1.png" alt="about img" height="500" width="400">
+        </div>
+    </div>
+    <div class="service" id="service">
+        <div class="img2">
+            <img src="/static/pic2.png" alt="service img">
+        </div>
+        <div class="options">
+            <h2>Our Services</h2>
+            <ul>
+                <li><b>Emergency Roadside Assistance:</b> Immediate help for flat tires, dead batteries, and lockouts.</li>
+                <li><b>Vehicle Diagnostics:</b> Professional diagnostics to identify and fix mechanical issues.</li>
+                <li><b>Towing Services:</b> Safe and reliable towing for vehicles in need of repair.</li>
+                <li><b>Emergency Fuel Delivery:</b> Delivery of fuel if you run out unexpectedly.</li>
+                <li><b>Jump Starts:</b> Quick jump-start services for vehicles with dead batteries.</li>
+                <li><b>Tire Changes:</b> Assistance with changing flat tires and getting you back on the road.</li>
+                <li><b>Locksmith Services:</b> Help with lockouts and lost keys.</li>
+                <li><b>Fluid Delivery:</b> Delivery of essential fluids such as coolant or oil.</li>
+                <li><b>Minor Repairs:</b> On-the-spot repairs for minor mechanical issues.</li>
+                <li><b>Battery Replacement:</b> Replacement of dead or faulty batteries.</li>
+            </ul>
+        </div>
+    </div>
+    <footer>
+        <div class="footer-links" id="footer-links">
+            <ul>
+                <li><a href="#about">About</a></li>
+                <li><a href="#">Newsroom</a></li>
+                <li><a href="#">Blog</a></li>
+                <li><a href="#">Careers</a></li>
+                <li><a href="#">Privacy</a></li>
+                <li><a href="#">Terms</a></li>
+            </ul>
+        </div>
+        <div class="social-icons">
+            <a href="https://www.facebook.com/suraj.kusahoo.56"><i class="fab fa-facebook-f"></i></a>
+            <a href="https://twitter.com/SurajKrSahoo"><i class="fab fa-twitter"></i></a>
+            <a href="https://www.instagram.com/suraj_kr.000/"><i class="fab fa-instagram"></i></a>
+        </div>
+        <br>
+        <div class="store-links">
+            <a href="#"><img src="/static/appstore.png" alt="App Store"></a>
+            <a href="#"><img src="/static/playstore.png" alt="Google Play"></a>
+        </div>
+        <div class="copyright">
+            <p>&copy; 2024 SwiftSOS Inc.</p>
+        </div>
+    </footer>
+    
+</body>
+</html>

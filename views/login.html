@@ -1,0 +1,103 @@
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login Page</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body {
+      font-family: Arial, sans-serif;
+      background-color: rgba(10, 10, 10, 0.9); /* 90% opacity light gray */
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100vh;
+      background-image: url('/static/fg.jpeg');
+      background-size: cover; /* Ensures the background image covers the entire body */
+      background-position: center; /* Centers the background image */
+      background-repeat: no-repeat; /* Prevents the background image from repeating */
+  }
+  
+  
+  .login-container {
+      max-width: 400px;
+      margin: 100px auto;
+      height:400px;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      color: white;
+    
+  }
+  
+  h2 {
+      text-align: center;
+  }
+  
+  .input-group {
+      margin-bottom: 15px;
+  }
+  
+  .input-group label {
+      display: block;
+      margin-bottom: 5px;
+  }
+  
+  .input-group input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+  }
+  
+  button {
+      width: 100%;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+      background-color: #007bff;
+      color: #fff;
+      cursor: pointer;
+      
+  }
+  
+  button:hover {
+      background-color: #0056b3;
+      
+  }
+  a{
+      margin-top:20px;
+      text-decoration: none;
+  
+  }
+  a:hover{
+      text-decoration: line;
+  
+  }
+</style>
+<center>
+  <h1>Welcom to SWIFTSOS</h1>
+</center>
+<div class="login-container">
+  <h2>Login</h2>
+  <form action="/login" method="POST">
+    <div class="input-group">
+      <label for="username">Username:</label>
+      <input id="username" type="text" name="username" placeholder="Username" required>
+    </div>
+    <div class="input-group">
+      <label for="password">Password:</label>
+      <input id="password" type="password" name="password" placeholder="Password" required>
+    </div>
+    <div class="input-group">
+      <label for="role">Role:</label>
+      <select id="role" name="role" required>
+          <option value="user">User</option>
+          <option value="garage">Garage</option>
+      </select>
+  </div>
+    <button type="submit">Login</button>
+  </form>
+  <center><a href="/signup">Register? Sign up</a></center>
+</div>
